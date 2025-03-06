@@ -15,7 +15,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
-	monnitapi.InitApiHandler(os.Getenv("API_KEY_ID"), os.Getenv("API_KEY_SECRET"))
+	monnitapi.InitApiHandler(os.Getenv("API_KEY_ID"), os.Getenv("API_KEY_SECRET"), 10)
 	r := mux.NewRouter()
 	r.HandleFunc("/", HomeHandler)
 	http.ListenAndServe(":42069", r)

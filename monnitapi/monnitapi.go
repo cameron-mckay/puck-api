@@ -6,37 +6,38 @@ import (
 	"time"
 )
 
-var requestQueue chan *http.Request
-var resultChannel chan *http.Response
+var requestChannel chan *http.Request
+var responseChannel chan *http.Response
 var httpClient *http.Client
 
-func InitApiHandler(apiKeyId string, apiKeySecret string) {
+func InitApiHandler(apiKeyId string, apiKeySecret string, timeOutSeconds int) {
 	// Create non default http client
-	httpClient = &http.Client{Timeout: 10 * time.Second}
+	httpClient = &http.Client{Timeout: time.Duration(timeOutSeconds) * time.Second}
 
 	// Create API queue channel
-	requestQueue = make(chan *http.Request, 1)
-	resultChannel = make(chan *http.Response, 1)
+	requestChannel = make(chan *http.Request, 1)
+	responseChannel = make(chan *http.Response, 1)
 
-	//
+	// Create request handler goroutine
 	go func() {
-		for query := range requestQueue {
+		for query := range requestChannel {
 			query.Header.Add("APIKeyID", apiKeyId)
 			query.Header.Add("APISecretKey", apiKeySecret)
 			response, err := httpClient.Do(query)
 			if err != nil {
 				log.Fatalln("Error processing request: ", err)
-				resultChannel <- nil
+				responseChannel <- nil
 			} else {
-				resultChannel <- response
+				responseChannel <- response
 			}
 		}
 	}()
 }
 
 func CloseApiHandler() {
-	close(requestQueue)
-	close(resultChannel)
+	// Close request queues
+	close(requestChannel)
+	close(responseChannel)
 }
 
 func GatewayReform(gatwayId int) bool {
