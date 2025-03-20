@@ -43,11 +43,13 @@ func DeleteAllSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
 		log.Fatalf("Error decoding request: %v", err)
 		w.Write([]byte("Error decoding request"))
 	}
+	log.Printf("Network ID %d", decodedReq.NetworkID)
 	// Create request body
 	sensors := monnitapi.GetSensorsOnNetwork(decodedReq.NetworkID)
 
 	for i := range len(sensors.Result) {
 		id := sensors.Result[i].SensorID
+		log.Printf("Sensor ID %d", id)
 		res := monnitapi.RemoveSensor(id)
 		if res == false {
 			log.Fatalf("Error on sensor ID %d", id)
