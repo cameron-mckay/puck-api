@@ -72,7 +72,7 @@
 
         function deleteOnNetwork()
         {
-            let networkId = parseInt(document.getElementById("networkId"))
+            let networkId = parseInt(document.getElementById("networkId").value)
             fetch("/deleteOnNetwork", {
                 method: "POST",
                 headers: {
