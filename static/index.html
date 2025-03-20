@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="dark">
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,6 +9,8 @@
   </head>
   <body>
     <script>
+
+        var waiting = false
 
         function arrayToCSV(arr) {
             if(arr.length>0) {
@@ -72,6 +74,13 @@
 
         function deleteOnNetwork()
         {
+            if(waiting == true)
+            {
+                window.alert("Be patient.")
+                return;
+            }
+            waiting = true;
+
             let networkId = parseInt(document.getElementById("networkId").value)
             fetch("/deleteOnNetwork", {
                 method: "POST",
@@ -84,24 +93,37 @@
             })
             .then((text) => {
                 window.alert(text)
+                waiting = false;
+            })
+            .catch((err)=>{
+                window.alert(err)
+                waiting = false;
             })
         }
 
     </script>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">PSIC Tags</h1>
+    <div class="container-sm mt-5">
 
-        <div class="d-flex justify-content-center mb-4">
-            <input type="text" id="networkId"/>
-            <button class="btn btn-danger mx-2" type="button" onclick="deleteOnNetwork()">Delete</button>
+        <div class="mb-4 row justify-content-center">
+            <div class="col-auto">
+                <label for="networkId" class="form-label">Delete sensors from network: </label>
+            </div>
+            <div class="col-auto">
+                <input class="form-control" type="text" id="networkId" placeholder="Network ID"/>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-danger mx-2" type="button" onclick="deleteOnNetwork()">Delete</button>
+            </div>
         </div>
 
+        <hr>
+        <h1 class="text-center mb-4">PSIC Tags</h1>
         <div class="d-flex justify-content-center mb-4">
             <button class="btn btn-danger mx-2" type="button" onclick="clearClicked()">Clear</button>
             <button class="btn btn-primary mx-2" type="button" onclick="submitClicked()">Download CSV</button>
         </div>
         <div class="d-flex justify-content-center">
-            <textarea id="tagList" class="form-control" rows="10" style="width: 75%;"></textarea>
+            <textarea placeholder="Puck tags" id="tagList" class="form-control" rows="10" style="width: 75%;"></textarea>
         </div>
     </div>
 
