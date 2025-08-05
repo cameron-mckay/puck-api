@@ -82,7 +82,7 @@
             waiting = true;
 
             let networkId = parseInt(document.getElementById("networkId").value)
-            fetch("/deleteOnNetwork", {
+            fetch("/api/deleteOnNetwork", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
