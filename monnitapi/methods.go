@@ -26,13 +26,19 @@ func GatewayReform(gatewayId int) error {
 	return nil
 }
 
+type networkListReq struct {
+	AccountID int `json:"accountID"`
+}
 type networkListResponse struct {
 	Method string    `json:"Method"`
 	Result []Network `json:"Result"`
 }
 
 func GetNetworkList() ([]Network, error) {
-	response, err := apiCall[networkListResponse](http.MethodPost, "/NetworkList", nil)
+	body := &networkListReq{
+		AccountID: accountID,
+	}
+	response, err := apiCall[networkListResponse](http.MethodPost, "/NetworkList", body)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not fetch network list: %v", err)
@@ -54,7 +60,7 @@ type sensorListResponse struct {
 func GetSensorsOnNetwork(networkId int) ([]ApiSensor, error) {
 	body := &sensorListReq{
 		NetworkID: networkId,
-		AccountID: 73221,
+		AccountID: accountID,
 	}
 	response, err := apiCall[sensorListResponse](http.MethodPost, "/SensorList", body)
 

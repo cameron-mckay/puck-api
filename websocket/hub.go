@@ -1,5 +1,7 @@
 package websocket
 
+import "sync"
+
 // Hub maintains the set of active clients and broadcasts messages to the
 // clients.
 type Hub struct {
@@ -7,22 +9,35 @@ type Hub struct {
 	clients map[*Client]bool
 
 	// Inbound messages from the clients.
-	broadcast chan []byte
+	Broadcast chan []byte
 
-	// Register requests from the clients.
+	// register requests from the clients.
 	register chan *Client
 
-	// Unregister requests from clients.
+	// unregister requests from clients.
 	unregister chan *Client
+	close      chan struct{}
+	once       sync.Once
 }
 
-func NewHub() *Hub {
-	return &Hub{
-		broadcast:  make(chan []byte),
+var MessageHub *Hub
+
+func Init() {
+	MessageHub = &Hub{
+		Broadcast:  make(chan []byte),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		clients:    make(map[*Client]bool),
+		close:      make(chan struct{}),
+		once:       sync.Once{},
 	}
+	go MessageHub.run()
+}
+
+func Close() {
+	MessageHub.once.Do((func() {
+		close(MessageHub.close)
+	}))
 }
 
 func (h *Hub) run() {
@@ -35,7 +50,7 @@ func (h *Hub) run() {
 				delete(h.clients, client)
 				close(client.send)
 			}
-		case message := <-h.broadcast:
+		case message := <-h.Broadcast:
 			for client := range h.clients {
 				select {
 				case client.send <- message:
@@ -44,6 +59,12 @@ func (h *Hub) run() {
 					delete(h.clients, client)
 				}
 			}
+		case <-h.close:
+			for client := range h.clients {
+				close(client.send)
+				delete(h.clients, client)
+			}
+			return
 		}
 	}
 }

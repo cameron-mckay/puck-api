@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -14,10 +15,19 @@ var requestQueue chan *http.Request
 var resultChannel chan *http.Response
 var httpClient *http.Client
 var baseUrl string
+var accountID int
+
+var debugLog *log.Logger
+var errorLog *log.Logger
 
 // Initializes variables required for API communcation
-func InitApiHandler(url string, apiKeyId string, apiKeySecret string) {
+func Init(url string, apiKeyId string, apiKeySecret string, accountId int) {
+
+	debugLog = log.New(os.Stdout, "- [monnitapi][DEBUG]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+	errorLog = log.New(os.Stdout, "- [monnitapi][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+
 	baseUrl = url
+	accountID = accountId
 	// Create non default http client
 	httpClient = &http.Client{Timeout: 10 * time.Second}
 
@@ -49,13 +59,13 @@ func InitApiHandler(url string, apiKeyId string, apiKeySecret string) {
 	}()
 }
 
-func CloseApiHandler() {
+func Close() {
 	close(requestQueue)
 	close(resultChannel)
 }
 
 func apiCall[T any](method string, route string, body any) (*T, error) {
-
+	debugLog.Printf("Calling %s", route)
 	payloadBuffer := new(bytes.Buffer)
 	json.NewEncoder(payloadBuffer).Encode(body)
 

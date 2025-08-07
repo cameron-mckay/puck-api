@@ -2,39 +2,39 @@ package monnitapi
 
 type WebhookMessage struct {
 	GatewayMessage GatewayMessage  `json:"gatewayMessage"`
-	SensorMessages []SensorMessage `json:"sensorMessage"`
+	SensorMessages []SensorMessage `json:"sensorMessages,omitempty"`
 }
 
 type GatewayMessage struct {
-	GatewayID      int    `json:"gatewayID"`
+	GatewayID      string `json:"gatewayID"`
 	GatewayName    string `json:"gatewayName"`
-	AccountID      int    `json:"accountID"`
-	NetworkID      int    `json:"networkID"`
-	MessageType    int    `json:"messageType"`
-	Power          int    `json:"power"`
-	BatteryLevel   int    `json:"batteryLevel"`
+	AccountID      string `json:"accountID"`
+	NetworkID      string `json:"networkID"`
+	MessageType    string `json:"messageType"`
+	Power          string `json:"power"`
+	BatteryLevel   string `json:"batteryLevel"`
 	Date           string `json:"date"`
-	Count          int    `json:"count"`
-	SignalStrength int    `json:"signalStrength"`
-	PendingChange  bool   `json:"pendingChange"`
+	Count          string `json:"count"`
+	SignalStrength string `json:"signalStrength"`
+	PendingChange  string `json:"pendingChange"`
 }
 
 type SensorMessage struct {
-	SensorID        int     `json:"sensorID"`
-	SensorName      string  `json:"sensorName"`
-	ApplicationID   int     `json:"applicationID"`
-	NetworkID       int     `json:"networkID"`
-	DataMessageGUID string  `json:"dataMessageGUID"`
-	State           int     `json:"state"`
-	RawData         string  `json:"rawData"`
-	DataType        string  `json:"dataType"`
-	DataValue       string  `json:"dataValue"`
-	PlotValues      string  `json:"plotValues"`
-	PlotLabels      string  `json:"plotLabels"`
-	BatteryLevel    int     `json:"batteryLevel"`
-	SignalStrength  int     `json:"signalStrength"`
-	PendingChange   bool    `json:"pendingChange"`
-	Voltage         float32 `json:"voltage"`
+	SensorID        string `json:"sensorID"`
+	SensorName      string `json:"sensorName"`
+	ApplicationID   string `json:"applicationID"`
+	NetworkID       string `json:"networkID"`
+	DataMessageGUID string `json:"dataMessageGUID"`
+	State           string `json:"state"`
+	RawData         string `json:"rawData"`
+	DataType        string `json:"dataType"`
+	DataValue       string `json:"dataValue"`
+	PlotValues      string `json:"plotValues"`
+	PlotLabels      string `json:"plotLabels"`
+	BatteryLevel    string `json:"batteryLevel"`
+	SignalStrength  string `json:"signalStrength"`
+	PendingChange   string `json:"pendingChange"`
+	Voltage         string `json:"voltage"`
 }
 
 type ApiSensor struct {
