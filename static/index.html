@@ -26,15 +26,36 @@
     </style>
     <script>
 
+        let sensors = new Map()
+
         function logToConsole(networkId, message) {
             console.log(networkId)
             let consoleBox = document.getElementById("console_"+networkId)
             let d = new Date()
-            consoleBox.innerHTML = consoleBox.innerHTML+d.toLocaleTimeString()+" - "+message+"\n"
+            consoleBox.innerHTML = consoleBox.innerHTML+d.toLocaleTimeString()+" - "+message+"<br>"
             consoleBox.scrollTop = consoleBox.scrollHeight;
         }
         function buildPage() {
+
+
             getData()
+            .then(async (data)=>{
+                let counts =  await Promise.all(data.map(async (n)=>{
+                    return getMessageCountsOnNetwork(n.id)
+                }))
+
+                console.log(counts)
+                for (let n of counts) {
+                    if (n) {
+                        for (let s of n) {
+
+                            sensors.set(s.SensorID, { messageCount: s.Count, minBattery: s.MinBattery })
+                        }
+                    }
+                }
+
+                return data
+            })
             .then((data)=>{
                 let date = new Date()
                 let body = document.getElementById("body")
@@ -64,16 +85,21 @@
                                         <th scope="col">Reading</th>
                                         <th scope="col">Time</th>
                                         <th scope="col">Status</th>
+                                        <th scope="col">Battery</th>
+                                        <th scope="col">Message Count</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody_${d.id}">`
                         for(let s of d.sensors) {
+                            let extraData = sensors.get(s.SensorID)
                             html=html+`
                             <tr class="${s.Online?"table-success":"table-danger"}">
                                 <td>${s.SensorID}</th>
                                 <td>${s.CurrentReading}</td>
                                 <td>${s.LastCommunicationDate.toLocaleString()}</td>
                                 <td>${s.Online?"Online":"Offline"}</td>
+                                <td>${extraData.minBattery}</td>
+                                <td>${extraData.messageCount}</td>
                             </tr>
                             `
                         }
@@ -120,12 +146,15 @@
                     lastUpdate.innerText = (new Date()).toLocaleString()
                     let html=``
                     for(let s of d.sensors) {
+                        let extraData = sensors.get(s.SensorID)
                         html=html+`
                         <tr class="${s.Online?"table-success":"table-danger"}">
                             <td>${s.SensorID}</th>
                             <td>${s.CurrentReading}</td>
                             <td>${s.LastCommunicationDate.toLocaleString()}</td>
                             <td>${s.Online?"Online":"Offline"}</td>
+                            <td>${extraData.minBattery}</td>
+                            <td>${extraData.messageCount}</td>
                         </tr>
                         `
                     }
@@ -230,8 +259,7 @@
             return ""
         }
 
-        function deleteOnNetwork(networkId)
-        {
+        function deleteOnNetwork(networkId) {
             if(waiting == true)
             {
                 window.alert("Be patient.")
@@ -259,8 +287,7 @@
             })
         }
 
-        function getNetworks()
-        {
+        function getNetworks() {
             return fetch("/api/getNetworks", {
                 method: "GET",
                 headers: {
@@ -276,8 +303,20 @@
 
         }
 
-        function getSensorsOnNetwork(networkId)
-        {
+        function getMessageCountsOnNetwork(networkId) {
+            return fetch("/api/getMessageCountsOnNetwork", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({networkId})
+            })
+            .then((res)=>{
+                return res.json()
+            })
+        }
+
+        function getSensorsOnNetwork(networkId) {
             return fetch("/api/getSensorsOnNetwork", {
                 method: "POST",
                 headers: {
@@ -290,10 +329,21 @@
             })
             .then((res)=>{
                 let now = new Date()
+                let future = new Date(4070908800001)
                 return res.map((s)=>{
                     s.LastCommunicationDate = new Date(parseInt(s.LastCommunicationDate.match(/\d+/)[0]))
                     s.NextCommunicationDate = new Date(parseInt(s.NextCommunicationDate.match(/\d+/)[0]))
-                    s.Online = now < s.NextCommunicationDate
+                    s.Online = now < s.NextCommunicationDate && s.NextCommunicationDate < future
+
+                    if(s.SensorID==1304698) {
+                        console.log(now < s.NextCommunicationDate)
+                        console.log(s.NextCommunicationDate < future)
+
+                        console.log(s.NextCommunicationDate.toLocaleString())
+                        console.log(future.toLocaleString())
+
+                    }
+
                     return s
                 })
             })
@@ -302,14 +352,13 @@
             })
         }
 
-        function addBatchToNetwork(networkId, batchId)
-        {
+        function addBatchToNetwork(networkId, binId) {
             return fetch("/api/addBinToNetwork", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
                 },
-                body: JSON.stringify({networkId, batchId})
+                body: JSON.stringify({networkId, binId})
             })
             .then((res)=>{
                 return res.text()

@@ -17,14 +17,16 @@ var httpClient *http.Client
 var baseUrl string
 var accountID int
 
+var infoLog *log.Logger
 var debugLog *log.Logger
 var errorLog *log.Logger
 
 // Initializes variables required for API communcation
 func Init(url string, apiKeyId string, apiKeySecret string, accountId int) {
 
+	infoLog = log.New(os.Stdout, "- [monnitapi][INFO]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
 	debugLog = log.New(os.Stdout, "- [monnitapi][DEBUG]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
-	errorLog = log.New(os.Stdout, "- [monnitapi][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+	errorLog = log.New(os.Stdout, "- [monnitapi][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix|log.Lshortfile)
 
 	baseUrl = url
 	accountID = accountId
@@ -50,7 +52,7 @@ func Init(url string, apiKeyId string, apiKeySecret string, accountId int) {
 
 			// Return result to channel
 			if err != nil {
-				log.Fatalln("Error processing request: ", err)
+				errorLog.Printf("Error processing request: %v", err)
 				resultChannel <- nil
 			} else {
 				resultChannel <- response

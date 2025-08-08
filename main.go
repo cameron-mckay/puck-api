@@ -15,20 +15,26 @@ import (
 	"otherworldly.dev/puck-api/websocket"
 )
 
+var mainLog *log.Logger
+var mainError *log.Logger
+
 func main() {
+	mainLog = log.New(os.Stdout, "- [main][DEBUG]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+	mainError = log.New(os.Stderr, "- [main][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		mainError.Fatalf("Error loading .env file: %v", err)
 	}
 
 	accId, err := strconv.ParseInt(os.Getenv("API_ACCOUNT_ID"), 10, 32)
 	if err != nil {
-		log.Fatalf("Error parsing account id: %v", err)
+		mainError.Fatalf("Error parsing account id: %v", err)
 	}
 
 	err = db.Init(os.Getenv("DB_CONNECTION_STRING"))
 	if err != nil {
-		log.Fatal(err)
+		mainError.Fatal(err)
 	}
 	websocket.Init()
 	monnitapi.Init(os.Getenv("API_BASE_URL"), os.Getenv("API_KEY_ID"), os.Getenv("API_KEY_SECRET"), int(accId))
@@ -39,7 +45,7 @@ func main() {
 
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Println("Application running. Press Ctrl+C to exit.")
+	mainLog.Println("Application running. Press Ctrl+C to exit.")
 
 	// Block until interrupt
 	<-sigChan
@@ -50,5 +56,5 @@ func main() {
 	websocket.Close()
 	db.Close()
 
-	log.Println("Received interrupt signal. Exiting...")
+	mainLog.Println("Received interrupt signal. Exiting...")
 }

@@ -90,3 +90,36 @@ func RemoveSensor(sensorId int) error {
 	}
 	return nil
 }
+
+type gatewayListResponse struct {
+	Method string    `json:"Method"`
+	Result []Gateway `json:"Result"`
+}
+
+func GetGatewaysOnNetwork(networkId int) ([]Gateway, error) {
+	body := &sensorListReq{
+		NetworkID: networkId,
+		AccountID: accountID,
+	}
+	response, err := apiCall[gatewayListResponse](http.MethodPost, "/GatewayList", body)
+
+	if err != nil {
+		return nil, fmt.Errorf("could not fetch gateway list: %v", err)
+	}
+
+	return response.Result, nil
+}
+
+func ReformNetwork(networkId int) error {
+	gateways, err := GetGatewaysOnNetwork(networkId)
+	if err != nil {
+		return err
+	}
+	for _, g := range gateways {
+		err = GatewayReform(g.GatewayID)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}

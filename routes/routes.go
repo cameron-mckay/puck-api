@@ -12,7 +12,8 @@ import (
 	"otherworldly.dev/puck-api/websocket"
 )
 
-var routeLog *log.Logger
+var routeInfo *log.Logger
+var routeDebug *log.Logger
 var routeError *log.Logger
 
 func reqBodyParser[T any](r *http.Request) (*T, error) {
@@ -26,19 +27,21 @@ func reqBodyParser[T any](r *http.Request) (*T, error) {
 }
 
 func Init(addr string) {
-	routeLog = log.New(os.Stdout, "- [routes][DEBUG]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
-	routeError = log.New(os.Stderr, "- [routes][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+	routeInfo = log.New(os.Stdout, "- [routes][INFO]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+	routeDebug = log.New(os.Stdout, "- [routes][DEBUG]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
+	routeError = log.New(os.Stderr, "- [routes][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix|log.Lshortfile)
 
 	http.HandleFunc("/", homeHandler)
 	http.HandleFunc("/ws", websocket.Serve)
 	http.HandleFunc("/api/getNetworks", getNetworks)
 	http.HandleFunc("/api/deleteAllSensorsOnNetwork", deleteAllSensorsOnNetwork)
 	http.HandleFunc("/api/getSensorsOnNetwork", getSensorsOnNetwork)
+	http.HandleFunc("/api/getMessageCountsOnNetwork", getMessageCountsOnNetwork)
 	http.HandleFunc("/api/addBinToNetwork", addBinToNetwork)
 
 	go http.ListenAndServe(addr, nil)
 
-	routeLog.Println("Listening on " + addr)
+	routeInfo.Println("Listening on " + addr)
 }
 
 func Close() {
@@ -47,7 +50,7 @@ func Close() {
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "static/index.html")
-	routeLog.Println("Served index")
+	routeInfo.Println("Served index")
 }
 
 func getNetworks(w http.ResponseWriter, r *http.Request) {
@@ -75,7 +78,7 @@ type networkReq struct {
 }
 
 func getSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
-	routeLog.Println("Sensor list requested")
+	routeInfo.Println("Sensor list requested")
 	w.Header().Set("Content-Type", "application/json")
 
 	defer r.Body.Close()
@@ -84,15 +87,14 @@ func getSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
 
 	err := json.NewDecoder(r.Body).Decode(decodedReq)
 
-	// Check for errors
 	if err != nil {
 		routeError.Println(err)
 		w.Write([]byte(fmt.Sprintf("Error decoding request: %v", err)))
 		return
 	}
-	routeLog.Printf("Network ID %d", decodedReq.NetworkID)
-	// Create request body
+
 	sensors, err := monnitapi.GetSensorsOnNetwork(decodedReq.NetworkID)
+
 	if err != nil {
 		routeError.Println(err)
 		w.Write([]byte(fmt.Sprintf("Error getting sensors: %v", err)))
@@ -110,12 +112,45 @@ func getSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
+func getMessageCountsOnNetwork(w http.ResponseWriter, r *http.Request) {
+	routeInfo.Println("Message counts requested")
+	w.Header().Set("Content-Type", "application/json")
+
+	defer r.Body.Close()
+
+	decodedReq, err := reqBodyParser[networkReq](r)
+
+	if err != nil {
+		routeError.Println(err)
+		w.Write([]byte(fmt.Sprintf("Error decoding request: %v", err)))
+		return
+	}
+
+	mcs, err := db.GetMessageCounts(decodedReq.NetworkID)
+
+	if err != nil {
+		routeError.Println(err)
+		w.Write([]byte(fmt.Sprintf("Error getting message counts: %v", err)))
+		return
+	}
+
+	res, err := json.Marshal(mcs)
+
+	if err != nil {
+		routeError.Println(err)
+		w.Write([]byte(fmt.Sprintf("Error encoding message count json: %v", err)))
+		return
+	}
+
+	w.Write(res)
+}
+
 func deleteAllSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
-	routeLog.Println("Sensor delete requested")
+	routeInfo.Println("Sensor delete requested")
 	w.Header().Set("Content-Type", "application/json")
 
 	decodedReq, err := reqBodyParser[networkReq](r)
-	// Check for errors
+
 	if err != nil {
 		routeError.Println(err)
 		w.Write([]byte(fmt.Sprintf("Error decoding request: %v", err)))
@@ -130,6 +165,13 @@ func deleteAllSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	err = monnitapi.ReformNetwork(decodedReq.NetworkID)
+	if err != nil {
+		routeError.Printf("can't reform network, error: %v", err)
+		w.Write([]byte(fmt.Sprintf("Error reforming network: %v", err)))
+		return
+	}
+
 	w.Write([]byte("Success"))
 }
 
@@ -139,13 +181,13 @@ type binReq struct {
 }
 
 func addBinToNetwork(w http.ResponseWriter, r *http.Request) {
-	routeLog.Println("Sensor delete requested")
+	routeInfo.Println("Sensor add requested")
 	w.Header().Set("Content-Type", "application/json")
 
 	defer r.Body.Close()
 
 	decodedReq, err := reqBodyParser[binReq](r)
-	// Check for errors
+
 	if err != nil {
 		routeError.Println(err)
 		w.Write([]byte(fmt.Sprintf("Error decoding request: %v", err)))
@@ -157,6 +199,13 @@ func addBinToNetwork(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		routeError.Printf("can't add sensors, error: %v", err)
 		w.Write([]byte(fmt.Sprintf("Error adding sensors: %v", err)))
+		return
+	}
+
+	err = monnitapi.ReformNetwork(decodedReq.NetworkID)
+	if err != nil {
+		routeError.Printf("can't reform network, error: %v", err)
+		w.Write([]byte(fmt.Sprintf("Error reforming network: %v", err)))
 		return
 	}
 

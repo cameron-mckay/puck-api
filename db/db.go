@@ -10,12 +10,13 @@ import (
 var db *sql.DB
 
 func Init(connString string) error {
-	db, err := sql.Open("sqlserver", connString)
+	d, err := sql.Open("sqlserver", connString)
+
+	db = d
 
 	if err != nil {
 		return err
 	}
-	defer db.Close()
 
 	ctx := context.Background()
 	if err := db.PingContext(ctx); err != nil {
@@ -30,11 +31,47 @@ func Close() {
 }
 
 func AddBinToNetwork(binId int, networkId int) error {
-	_, err := db.Exec("EXEC BulkAddRPAPuckToNetwork @FullfillmentBinID = ?, @NetworkID = ?", binId, networkId)
+	if db == nil {
+		panic("db instance not initialized")
+	}
+	_, err := db.Exec("EXEC BulkAddRPAPuckToNetwork @FulfillmentBinID = @p1, @NetworkID = @p2", sql.Named("p1", binId), sql.Named("p2", networkId))
 	return err
 }
 
 func DeleteAllSensorsOnNetwork(networkId int) error {
-	_, err := db.Exec("EXEC BulkDeleteRPAPuckFromNetwork @NetworkID = ?", networkId)
+	if db == nil {
+		panic("db instance not initialized")
+	}
+	_, err := db.Exec("EXEC BulkDeleteRPAPuckFromNetwork @NetworkID = @p1", sql.Named("p1", networkId))
 	return err
+}
+
+type MessageCounts struct {
+	SensorID   int
+	Count      int
+	MinBattery int
+}
+
+func GetMessageCounts(networkId int) ([]MessageCounts, error) {
+	var mcs []MessageCounts
+
+	if db == nil {
+		panic("db instance not initialized")
+	}
+	rows, err := db.Query("EXEC BulkRPAPuckPastDay @NetworkID = @p1", sql.Named("p1", networkId))
+
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var mc MessageCounts
+		err = rows.Scan(&mc.SensorID, &mc.Count, &mc.MinBattery)
+		if err != nil {
+			return nil, err
+		}
+		mcs = append(mcs, mc)
+	}
+
+	return mcs, nil
 }
