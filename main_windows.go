@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/joho/godotenv"
@@ -19,6 +20,14 @@ var mainLog *log.Logger
 var mainError *log.Logger
 
 type puckService struct{}
+
+func getExecutableDir() (string, error) {
+	exePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(exePath), nil
+}
 
 func runService(name string, isDebug bool) {
 	if isDebug {
@@ -63,7 +72,16 @@ func main() {
 	mainLog = log.New(os.Stdout, "- [main][DEBUG]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
 	mainError = log.New(os.Stderr, "- [main][ERROR]: ", log.Ldate|log.Ltime|log.Lmsgprefix)
 
-	err := godotenv.Load(".env")
+	dir, err := getExecutableDir()
+	if err != nil {
+		mainError.Fatal(err)
+	}
+	err = os.Chdir(dir)
+	if err != nil {
+		mainError.Fatalf("Failed to set working directory: %v", err)
+	}
+
+	err = godotenv.Load(".env")
 	if err != nil {
 		mainError.Fatalf("Error loading .env file: %v", err)
 	}
