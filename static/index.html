@@ -36,8 +36,6 @@
             consoleBox.scrollTop = consoleBox.scrollHeight;
         }
         function buildPage() {
-
-
             getData()
             .then(async (data)=>{
                 let counts =  await Promise.all(data.map(async (n)=>{
@@ -48,8 +46,7 @@
                 for (let n of counts) {
                     if (n) {
                         for (let s of n) {
-
-                            sensors.set(s.SensorID, { messageCount: s.Count, minBattery: s.MinBattery })
+                            sensors.set(s.sensorId, s)
                         }
                     }
                 }
@@ -91,17 +88,7 @@
                                     </thead>
                                     <tbody id="tbody_${d.id}">`
                         for(let s of d.sensors) {
-                            let extraData = sensors.get(s.SensorID)
-                            html=html+`
-                            <tr class="${s.Online?"table-success":"table-danger"}">
-                                <td>${s.SensorID}</th>
-                                <td>${s.CurrentReading}</td>
-                                <td>${s.LastCommunicationDate.toLocaleString()}</td>
-                                <td>${s.Online?"Online":"Offline"}</td>
-                                <td>${extraData.minBattery}</td>
-                                <td>${extraData.messageCount}</td>
-                            </tr>
-                            `
+                            html=html+buildRow(s)
                         }
                         html=html+`
 
@@ -122,6 +109,32 @@
             })
         }
 
+        function buildRow(sensor) {
+            let extraData = sensors.has(sensor.SensorID) ? sensors.get(sensor.SensorID) : { minBattery: 100, count: 0, isDirty: false };
+
+            let sensorClass = "table-success";
+
+            if(!sensor.Online) {
+                sensorClass = "table-secondary"
+            }
+
+            if(extraData.minBattery < 100 || extraData.count > 50 || extraData.isDirty) {
+                sensorClass = "table-danger"
+            }
+
+            let btn = `<button class="btn btn-danger" type="button" onclick="setHeartbeat(${sensor.SensorID})">Fix Heartbeat</button>`
+            return `
+            <tr class="${sensorClass}">
+                <td>${sensor.SensorID}</th>
+                <td>${sensor.CurrentReading}</td>
+                <td>${sensor.LastCommunicationDate.toLocaleString()}</td>
+                <td>${sensor.Online?"Online":"Offline"}</td>
+                <td>${extraData.minBattery}</td>
+                <td class="d-flex justify-content-between"><div class="d-inline">${extraData.count}</div><div class="d-inlin">${extraData.count>50&&!extraData.isDirty?btn:""} ${extraData.isDirty==true?"Fix pending...":""}</div></td>
+            </tr>
+            `
+        }
+
         function addBatch(networkId) {
             let batchId = parseInt(document.getElementById("batchId_"+networkId).value)
             if(isNaN(batchId)) {
@@ -133,11 +146,6 @@
         function updatePage() {
             getData()
             .then((data)=>{
-                let date = new Date()
-                let body = document.getElementById("body")
-                let html = `
-                <div class="accordion" id="accordionPanelsStayOpenExample">
-                    <h1>Puck Tester</h1>`;
                 for(let i = 0; i < data.length; i++)
                 {
                     let d = data[i]
@@ -146,17 +154,7 @@
                     lastUpdate.innerText = (new Date()).toLocaleString()
                     let html=``
                     for(let s of d.sensors) {
-                        let extraData = sensors.get(s.SensorID)
-                        html=html+`
-                        <tr class="${s.Online?"table-success":"table-danger"}">
-                            <td>${s.SensorID}</th>
-                            <td>${s.CurrentReading}</td>
-                            <td>${s.LastCommunicationDate.toLocaleString()}</td>
-                            <td>${s.Online?"Online":"Offline"}</td>
-                            <td>${extraData.minBattery}</td>
-                            <td>${extraData.messageCount}</td>
-                        </tr>
-                        `
+                        html=html+buildRow(s)
                     }
                     table.innerHTML = html
                 }
@@ -200,7 +198,6 @@
                 conn.onclose = function (evt) {
                     var item = document.createElement("div");
                     item.innerHTML = "<b>Connection closed.</b>";
-                    appendLog(item);
                     setTimeout(createWebsocket, 1000)
                 };
                 conn.onmessage = function (evt) {
@@ -287,6 +284,30 @@
             })
         }
 
+        function setHeartbeat(sensorId) {
+            fetch("/api/setHeartbeat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({sensorId})
+            }).then((res)=>{
+                return res.text()
+            })
+            .then((text) => {
+                window.alert(text)
+
+                let s = sensors.get(sensorId)
+                s.isDirty = true
+                sensors.set(sensorId, s)
+                updatePage();
+            })
+            .catch((err)=>{
+                window.alert(err)
+                waiting = false;
+            })
+        }
+
         function getNetworks() {
             return fetch("/api/getNetworks", {
                 method: "GET",
@@ -332,18 +353,8 @@
                 let future = new Date(4070908800001)
                 return res.map((s)=>{
                     s.LastCommunicationDate = new Date(parseInt(s.LastCommunicationDate.match(/\d+/)[0]))
-                    s.NextCommunicationDate = new Date(parseInt(s.NextCommunicationDate.match(/\d+/)[0]))
+                    s.NextCommunicationDate = new Date(s.LastCommunicationDate.setHours(s.LastCommunicationDate.getHours()+2))
                     s.Online = now < s.NextCommunicationDate && s.NextCommunicationDate < future
-
-                    if(s.SensorID==1304698) {
-                        console.log(now < s.NextCommunicationDate)
-                        console.log(s.NextCommunicationDate < future)
-
-                        console.log(s.NextCommunicationDate.toLocaleString())
-                        console.log(future.toLocaleString())
-
-                    }
-
                     return s
                 })
             })

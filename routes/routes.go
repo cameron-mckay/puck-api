@@ -38,6 +38,7 @@ func Init(addr string) {
 	http.HandleFunc("/api/getSensorsOnNetwork", getSensorsOnNetwork)
 	http.HandleFunc("/api/getMessageCountsOnNetwork", getMessageCountsOnNetwork)
 	http.HandleFunc("/api/addBinToNetwork", addBinToNetwork)
+	http.HandleFunc("/api/setHeartbeat", updateHeartbeat)
 
 	go http.ListenAndServe(addr, nil)
 
@@ -81,8 +82,6 @@ func getSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
 	routeInfo.Println("Sensor list requested")
 	w.Header().Set("Content-Type", "application/json")
 
-	defer r.Body.Close()
-
 	decodedReq := new(networkReq)
 
 	err := json.NewDecoder(r.Body).Decode(decodedReq)
@@ -115,8 +114,6 @@ func getSensorsOnNetwork(w http.ResponseWriter, r *http.Request) {
 func getMessageCountsOnNetwork(w http.ResponseWriter, r *http.Request) {
 	routeInfo.Println("Message counts requested")
 	w.Header().Set("Content-Type", "application/json")
-
-	defer r.Body.Close()
 
 	decodedReq, err := reqBodyParser[networkReq](r)
 
@@ -184,8 +181,6 @@ func addBinToNetwork(w http.ResponseWriter, r *http.Request) {
 	routeInfo.Println("Sensor add requested")
 	w.Header().Set("Content-Type", "application/json")
 
-	defer r.Body.Close()
-
 	decodedReq, err := reqBodyParser[binReq](r)
 
 	if err != nil {
@@ -206,6 +201,32 @@ func addBinToNetwork(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		routeError.Printf("can't reform network, error: %v", err)
 		w.Write([]byte(fmt.Sprintf("Error reforming network: %v", err)))
+		return
+	}
+
+	w.Write([]byte("Success"))
+}
+
+type sensorReq struct {
+	SensorID int `json:"sensorId"`
+}
+
+func updateHeartbeat(w http.ResponseWriter, r *http.Request) {
+	routeInfo.Println("Sensor add requested")
+	w.Header().Set("Content-Type", "application/json")
+
+	decodedReq, err := reqBodyParser[sensorReq](r)
+
+	if err != nil {
+		routeError.Println(err)
+		http.Error(w, fmt.Sprintf("Error decoding request: %v", err), 400)
+		return
+	}
+
+	err = monnitapi.SetHeartbeat(decodedReq.SensorID, 120.0001, 120.0001)
+
+	if err != nil {
+		http.Error(w, fmt.Sprintf("Error setting heartbeat: %v", err), 500)
 		return
 	}
 

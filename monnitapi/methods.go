@@ -123,3 +123,29 @@ func ReformNetwork(networkId int) error {
 	}
 	return nil
 }
+
+type updateHeartbeatReq struct {
+	SensorID            int     `json:"SensorID"`
+	ReportInterval      float64 `json:"ReportInterval"`
+	ActiveStateInterval float64 `json:"ActiveStateInterval"`
+}
+
+func SetHeartbeat(sensorId int, reportInterval float64, activeStateInterval float64) error {
+	body := &updateHeartbeatReq{
+		SensorID:            sensorId,
+		ReportInterval:      reportInterval,
+		ActiveStateInterval: activeStateInterval,
+	}
+
+	response, err := apiCall[genericApiResponse](http.MethodPost, "/SensorSetHeartbeat", body)
+
+	if err != nil {
+		return fmt.Errorf("could not update hearbeat: %v", err)
+	}
+
+	if response.Result != "Success" {
+		return fmt.Errorf("could not update hearbeat: %v", err)
+	}
+
+	return nil
+}

@@ -14,6 +14,9 @@ func Init(connString string) error {
 
 	db = d
 
+	db.SetMaxOpenConns(20)
+	db.SetMaxIdleConns(20)
+
 	if err != nil {
 		return err
 	}
@@ -47,9 +50,10 @@ func DeleteAllSensorsOnNetwork(networkId int) error {
 }
 
 type MessageCounts struct {
-	SensorID   int
-	Count      int
-	MinBattery int
+	SensorID   int  `json:"sensorId"`
+	Count      int  `json:"count"`
+	MinBattery int  `json:"minBattery"`
+	IsDirty    bool `json:"isDirty"`
 }
 
 func GetMessageCounts(networkId int) ([]MessageCounts, error) {
@@ -66,7 +70,7 @@ func GetMessageCounts(networkId int) ([]MessageCounts, error) {
 
 	for rows.Next() {
 		var mc MessageCounts
-		err = rows.Scan(&mc.SensorID, &mc.Count, &mc.MinBattery)
+		err = rows.Scan(&mc.SensorID, &mc.Count, &mc.MinBattery, &mc.IsDirty)
 		if err != nil {
 			return nil, err
 		}
