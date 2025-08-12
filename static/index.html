@@ -353,7 +353,8 @@
                 let future = new Date(4070908800001)
                 return res.map((s)=>{
                     s.LastCommunicationDate = new Date(parseInt(s.LastCommunicationDate.match(/\d+/)[0]))
-                    s.NextCommunicationDate = new Date(s.LastCommunicationDate.setHours(s.LastCommunicationDate.getHours()+2))
+                    let temp = new Date(s.LastCommunicationDate)
+                    s.NextCommunicationDate = new Date(temp.setHours(temp.getHours()+2))
                     s.Online = now < s.NextCommunicationDate && s.NextCommunicationDate < future
                     return s
                 })

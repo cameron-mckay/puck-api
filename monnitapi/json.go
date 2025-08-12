@@ -70,20 +70,20 @@ type Network struct {
 }
 
 type Gateway struct {
-	GatewayID            int    `json:"GatewayID"`
-	NetworkID            int    `json:"NetworkID"`
-	Name                 string `json:"Name"`
-	GatewayType          string `json:"GatewayType"`
-	Heartbeat            int    `json:"Heartbeat"`
-	IsDirty              bool   `json:"IsDirty"`
-	LastCommuncationDate string `json:"LastCommunicationDate"`
-	LastInboundIPAddress string `json:"LastInboundIPAddress"`
-	MacAddress           string `json:"MacAddress"`
-	IsUnlocked           bool   `json:"IsUnlocked"`
-	CheckDigit           string `json:"CheckDigit"`
-	AccountID            int    `json:"AccountID"`
-	SignalStrength       int    `json:"SignalStrength"`
-	BatteryLevel         int    `json:"BatteryLevel"`
-	ResetInterval        int    `json:"ResetInterval"`
-	GatewayPowerMode     string `json:"GatewayPowerMode"`
+	GatewayID            int     `json:"GatewayID"`
+	NetworkID            int     `json:"NetworkID"`
+	Name                 string  `json:"Name"`
+	GatewayType          string  `json:"GatewayType"`
+	Heartbeat            float64 `json:"Heartbeat"`
+	IsDirty              bool    `json:"IsDirty"`
+	LastCommuncationDate string  `json:"LastCommunicationDate"`
+	LastInboundIPAddress string  `json:"LastInboundIPAddress"`
+	MacAddress           string  `json:"MacAddress"`
+	IsUnlocked           bool    `json:"IsUnlocked"`
+	CheckDigit           string  `json:"CheckDigit"`
+	AccountID            int     `json:"AccountID"`
+	SignalStrength       int     `json:"SignalStrength"`
+	BatteryLevel         int     `json:"BatteryLevel"`
+	ResetInterval        int     `json:"ResetInterval"`
+	GatewayPowerMode     string  `json:"GatewayPowerMode"`
 }
